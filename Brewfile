@@ -23,6 +23,9 @@ brew "xcbeautify"
 # Android dev
 cask "android-platform-tools"
 
+# Dev workspace
+cask "zed"
+
 # Native IDEs
 cask "android-studio"
 

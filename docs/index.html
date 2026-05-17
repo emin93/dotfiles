@@ -538,6 +538,10 @@
         <span class="tile-icon"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="2" y="3" width="20" height="18" rx="4" fill="none" stroke="#f59e0b" stroke-width="1.6"/><circle cx="9" cy="12" r="2.4" fill="none" stroke="#f59e0b" stroke-width="1.6"/><path d="M14 9.5l3 5M14 14.5l3-5" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/></svg></span>
         <span class="tile-body"><span class="tile-name">oMLX</span><span class="tile-desc">Local LLMs</span></span>
       </a>
+      <a class="tile" href="https://zed.dev" target="_blank" rel="noopener">
+        <span class="tile-icon"><img src="https://cdn.simpleicons.org/zedindustries/_default" alt="" loading="lazy"></span>
+        <span class="tile-body"><span class="tile-name">Zed</span><span class="tile-desc">Native editor</span></span>
+      </a>
       <a class="tile" href="https://developer.apple.com/xcode/" target="_blank" rel="noopener">
         <span class="tile-icon"><img src="https://cdn.simpleicons.org/xcode/1575F9" alt="" loading="lazy"></span>
         <span class="tile-body"><span class="tile-name">Xcode</span><span class="tile-desc">Apple IDE</span></span>
@@ -599,6 +603,12 @@
       <span class="chip">go</span>
     </div>
 
+    <div class="subhead">Editor support</div>
+    <div class="chips">
+      <span class="chip">Zed CLI</span>
+      <span class="chip">AI disabled</span>
+    </div>
+
     <div class="subhead">Auth, set up for you</div>
     <div class="chips">
       <span class="chip"><span class="arrow">→</span>GitHub via <code>gh auth login</code></span>
@@ -618,12 +628,13 @@
       <li><strong>Clone the repo.</strong><em>HTTPS, so it works before any auth is set up.</em></li>
       <li><strong>Brew bundle.</strong><em>Every tool and cask declared in the Brewfile.</em></li>
       <li><strong>pnpm globals.</strong><em><code>postiz</code>, <code>wrangler</code>, <code>@paddle/paddle-mcp</code>.</em></li>
+      <li><strong>Zed CLI link.</strong><em>Symlinks <code>/opt/homebrew/bin/zed</code> to the bundled <code>Zed.app</code> CLI so <code>zed .</code> works from any shell.</em></li>
       <li><strong>GitHub auth.</strong><em>Device-code login plus <code>gh auth setup-git</code> as credential helper.</em></li>
       <li><strong>1Password ready.</strong><em>Pauses until the GUI is unlocked with CLI integration and the SSH agent enabled.</em></li>
       <li><strong>SSH via 1Password.</strong><em>Wires <code>~/.ssh/config</code> to the 1Password SSH agent and uploads the public key (via <code>op</code> + <code>gh</code>) to GitHub for both auth and signing.</em></li>
       <li><strong>Repo origin → SSH.</strong><em>Switches the cloned repo from HTTPS to <code>git@github.com</code> once SSH is verified.</em></li>
       <li><strong>Override stubs.</strong><em>Creates empty <code>.gitconfig.local</code> and <code>.zshrc.local</code> so stowed configs can source them.</em></li>
-      <li><strong>Stow.</strong><em>Symlinks stable zsh, git, and helper scripts into <code>$HOME</code>.</em></li>
+      <li><strong>Stow.</strong><em>Symlinks stable zsh, git, Zed settings, and helper scripts into <code>$HOME</code>.</em></li>
       <li><strong>AI agent configs.</strong><em>Creates local Claude and Codex yolo configs only when missing, without stowing files that the apps mutate.</em></li>
       <li><strong>Secrets from 1Password.</strong><em>Reads the <code>stack env</code> item and writes <code>UPPER_SNAKE_CASE</code> fields as <code>export</code>s into <code>~/.zshrc.local</code>.</em></li>
       <li><strong>Claude + Codex sign-in.</strong><em>Launches each CLI for interactive auth.</em></li>

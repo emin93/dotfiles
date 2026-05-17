@@ -2,7 +2,7 @@
 [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Editor
-export EDITOR="nano"
+export EDITOR="zed --wait"
 export VISUAL="$EDITOR"
 
 # 1Password SSH agent

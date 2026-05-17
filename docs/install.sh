@@ -15,7 +15,7 @@ REPO_OWNER="emin93"
 REPO_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
 REPO_SSH_URL="git@github.com:${REPO_OWNER}/${REPO_NAME}.git"
 REPO_DIR="${HOME}/Documents/Projects/${REPO_NAME}"
-STOW_PACKAGES=(git zsh bin)
+STOW_PACKAGES=(git zsh zed bin)
 PNPM_GLOBAL=(postiz wrangler @paddle/paddle-mcp)
 OP_ENV_ITEM="stack env"
 OP_ENV_MARKER_BEGIN="# >>> stack: 1password-managed env (do not edit) >>>"
@@ -31,6 +31,7 @@ STOW_TARGETS=(
   "${HOME}/.gitconfig"
   "${HOME}/.hushlogin"
   "${HOME}/.zshrc"
+  "${HOME}/.config/zed/settings.json"
   "${HOME}/.local/bin/paddle-sandbox"
   "${HOME}/.local/bin/paddle-prod"
 )
@@ -149,6 +150,22 @@ step_pnpm_global() {
       fi
     fi
   done
+}
+
+step_zed_cli() {
+  step "Zed CLI"
+  local zed_cli="/Applications/Zed.app/Contents/MacOS/cli"
+  local target="/opt/homebrew/bin/zed"
+  if [[ ! -x "$zed_cli" ]]; then
+    warn "Zed.app not found at /Applications; skipping."
+    return
+  fi
+  if [[ -L "$target" && "$(readlink "$target")" == "$zed_cli" ]]; then
+    ok "already linked at $target."
+    return
+  fi
+  ln -sf "$zed_cli" "$target"
+  ok "linked $target -> $zed_cli"
 }
 
 step_gh_auth() {
@@ -560,6 +577,7 @@ STEPS=(
   step_clone_repo
   step_brew_bundle
   step_pnpm_global
+  step_zed_cli
   step_gh_auth
   step_1password_ready
   step_1password_ssh
