@@ -275,15 +275,6 @@ step_1password_ssh() {
       warn "couldn't upload 1Password key to GitHub for auth."
     fi
   fi
-  if gh api /user/ssh_signing_keys --jq '.[].key' 2>/dev/null | grep -Fxq "$pubkey"; then
-    ok "1Password key already on GitHub (signing)."
-  else
-    if printf '%s\n' "$pubkey" | gh ssh-key add - --title "$title" --type signing; then
-      ok "uploaded 1Password key to GitHub (signing)."
-    else
-      warn "couldn't upload 1Password key to GitHub for signing."
-    fi
-  fi
 }
 
 step_repo_remote_ssh() {
@@ -342,19 +333,39 @@ EOF
     ok "created ~/.claude/settings.json."
   fi
 
-  if [[ -e "${HOME}/.codex/config.toml" || -L "${HOME}/.codex/config.toml" ]]; then
-    ok "~/.codex/config.toml already exists; leaving it alone."
+  local codex_config="${HOME}/.codex/config.toml"
+  local paddle_sandbox="${HOME}/.local/bin/paddle-sandbox"
+  local paddle_prod="${HOME}/.local/bin/paddle-prod"
+  if [[ -e "$codex_config" || -L "$codex_config" ]]; then
+    if grep -Eq 'command = "(paddle-sandbox|paddle-prod)"' "$codex_config"; then
+      CODEX_CONFIG="$codex_config" \
+      PADDLE_SANDBOX_CMD="$paddle_sandbox" \
+      PADDLE_PROD_CMD="$paddle_prod" \
+      python3 - <<'PY'
+import os
+from pathlib import Path
+
+path = Path(os.environ["CODEX_CONFIG"])
+content = path.read_text()
+content = content.replace('command = "paddle-sandbox"', f'command = "{os.environ["PADDLE_SANDBOX_CMD"]}"')
+content = content.replace('command = "paddle-prod"', f'command = "{os.environ["PADDLE_PROD_CMD"]}"')
+path.write_text(content)
+PY
+      ok "updated ~/.codex/config.toml Paddle commands to absolute paths."
+    else
+      ok "~/.codex/config.toml already exists; leaving it alone."
+    fi
   else
-    install -m 600 /dev/stdin "${HOME}/.codex/config.toml" <<'EOF'
+    install -m 600 /dev/stdin "$codex_config" <<EOF
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
 [mcp_servers.paddle]
-command = "paddle-sandbox"
+command = "$paddle_sandbox"
 env_vars = ["PADDLE_SANDBOX_API_KEY"]
 
 [mcp_servers.paddle-prod]
-command = "paddle-prod"
+command = "$paddle_prod"
 env_vars = ["PADDLE_PROD_API_KEY"]
 EOF
     ok "created ~/.codex/config.toml."
@@ -463,6 +474,8 @@ PY
 
 step_claude_mcp_servers() {
   step "Claude MCP servers"
+  local paddle_sandbox="${HOME}/.local/bin/paddle-sandbox"
+  local paddle_prod="${HOME}/.local/bin/paddle-prod"
   export PATH="${HOME}/.local/bin:${PNPM_HOME:-$HOME/Library/pnpm}/bin:$PATH"
 
   if ! command -v claude >/dev/null 2>&1; then
@@ -480,7 +493,7 @@ step_claude_mcp_servers() {
 
   if claude mcp list 2>/dev/null | grep -q '^paddle:'; then
     ok "paddle already registered with Claude."
-  elif claude mcp add --scope user paddle -- paddle-sandbox; then
+  elif claude mcp add --scope user paddle -- "$paddle_sandbox"; then
     ok "registered paddle with Claude."
   else
     warn "couldn't register paddle with Claude."
@@ -488,7 +501,7 @@ step_claude_mcp_servers() {
 
   if claude mcp list 2>/dev/null | grep -q '^paddle-prod:'; then
     ok "paddle-prod already registered with Claude."
-  elif claude mcp add --scope user paddle-prod -- paddle-prod; then
+  elif claude mcp add --scope user paddle-prod -- "$paddle_prod"; then
     ok "registered paddle-prod with Claude."
   else
     warn "couldn't register paddle-prod with Claude."
