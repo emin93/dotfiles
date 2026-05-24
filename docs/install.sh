@@ -21,9 +21,10 @@ OP_ENV_ITEM="stack env"
 OP_ENV_MARKER_BEGIN="# >>> stack: 1password-managed env (do not edit) >>>"
 OP_ENV_MARKER_END="# <<< stack: 1password-managed env <<<"
 
-MAS_APPS=(
-  "1569813296:1Password for Safari"
-  "1662217862:Wipr"
+APP_STORE_APPS=(
+  "1Password for Safari"
+  "Wipr"
+  "Xcode"
 )
 
 LOCAL_OVERRIDES=(
@@ -481,97 +482,14 @@ step_claude_mcp_servers() {
   fi
 }
 
-step_mas_apps() {
-  step "Mac App Store apps"
-  if ! command -v mas >/dev/null 2>&1; then
-    warn "mas not installed (expected from Brewfile); skipping."
-    return
-  fi
-
-  local installed
-  installed=$(mas list 2>/dev/null | awk '{print $1}' || true)
-  local missing=()
-  local entry app_id app_name
-  for entry in "${MAS_APPS[@]}"; do
-    app_id="${entry%%:*}"
-    app_name="${entry#*:}"
-    if grep -Fxq "$app_id" <<<"$installed"; then
-      ok "$app_name already installed."
-    else
-      missing+=("$entry")
-    fi
-  done
-
-  if [[ ${#missing[@]} -eq 0 ]]; then
-    return
-  fi
-
-  local reply
-  warn "Mac App Store apps require an Apple ID sign-in."
-  open -a "App Store" >/dev/null 2>&1 || true
-  read -rp "    Sign in to the App Store, then press Enter to install missing apps (or type 'skip'): " reply
-  if [[ "$reply" == "skip" ]]; then
-    warn "skipping Mac App Store apps."
-    return
-  fi
-
-  for entry in "${missing[@]}"; do
-    app_id="${entry%%:*}"
-    app_name="${entry#*:}"
-    if mas install "$app_id"; then
-      ok "$app_name installed."
-    else
-      warn "couldn't install $app_name (signed in to the App Store?); re-run when ready."
-    fi
-  done
-}
-
-step_xcode() {
-  step "Xcode (latest)"
-  local xcode_app="/Applications/Xcode.app"
-  local receipt="$xcode_app/Contents/_MASReceipt/receipt"
-  if [[ -d "$xcode_app" && -f "$receipt" ]]; then
-    if sudo xcode-select -s "$xcode_app"; then
-      ok "already installed and selected."
-    else
-      warn "Xcode is installed, but xcode-select failed."
-    fi
-    return
-  fi
-  if ! command -v mas >/dev/null 2>&1; then
-    warn "mas not installed (expected from Brewfile); skipping."
-    return
-  fi
-  local reply
-  warn "Xcode installs through the Mac App Store and requires an Apple ID sign-in."
-  open -a "App Store" >/dev/null 2>&1 || true
-  read -rp "    Sign in to the App Store, then press Enter to install Xcode (or type 'skip'): " reply
-  if [[ "$reply" == "skip" ]]; then
-    warn "skipping Xcode install."
-    return
-  fi
-  # mas needs root to drop the App Store receipt into the root-owned bundle.
-  # Prime sudo so mas's internal non-interactive escalation succeeds.
-  printf "    sudo is needed so mas can write the App Store receipt.\n"
-  if ! sudo -v; then
-    warn "sudo unavailable; skipping Xcode install."
-    return
-  fi
-  if [[ -d "$xcode_app" && ! -f "$receipt" ]]; then
-    warn "removing partial Xcode.app (no App Store receipt) so mas can reinstall."
-    sudo rm -rf "$xcode_app"
-  fi
-  if ! mas install 497799835; then
-    warn "mas install failed (signed in to the App Store?); re-run when ready."
-    return
-  fi
-  sudo xcode-select -s "$xcode_app"
-  ok "Xcode installed and selected."
-}
-
 step_summary() {
   header "Done"
   ok "${STEP_NUM}/${STEP_TOTAL} steps completed."
+  printf "    Install these from the App Store when needed:\n"
+  local app
+  for app in "${APP_STORE_APPS[@]}"; do
+    printf "      - %s\n" "$app"
+  done
   printf "    Open a new Terminal to pick up the new shell environment.\n\n"
 }
 
@@ -595,8 +513,6 @@ STEPS=(
   step_claude_signin
   step_codex_signin
   step_claude_mcp_servers
-  step_mas_apps
-  step_xcode
 )
 STEP_TOTAL=${#STEPS[@]}
 

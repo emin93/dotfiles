@@ -8,7 +8,6 @@ brew "ffmpeg"
 brew "node"
 brew "pnpm"
 brew "go"
-brew "mas"
 brew "webp"
 brew "hf"
 
