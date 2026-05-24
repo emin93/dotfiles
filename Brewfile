@@ -1,8 +1,5 @@
-tap "jundot/omlx", "https://github.com/jundot/omlx"
-
 # CLI tools
 brew "stow"
-brew "lazygit"
 brew "ripgrep"
 brew "fd"
 brew "gh"
@@ -12,11 +9,8 @@ brew "node"
 brew "pnpm"
 brew "go"
 brew "mas"
-brew "aria2"
-brew "tokei"
 brew "webp"
 brew "hf"
-brew "jundot/omlx/omlx"
 
 # iOS/macOS dev
 brew "xcbeautify"
@@ -37,7 +31,6 @@ cask "1password-cli"
 
 # Messaging
 cask "whatsapp"
-cask "telegram"
 cask "signal"
 cask "discord"
 

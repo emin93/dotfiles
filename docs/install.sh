@@ -16,13 +16,12 @@ REPO_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
 REPO_SSH_URL="git@github.com:${REPO_OWNER}/${REPO_NAME}.git"
 REPO_DIR="${HOME}/Documents/Projects/${REPO_NAME}"
 STOW_PACKAGES=(git zsh bin)
-PNPM_GLOBAL=(postiz wrangler @paddle/paddle-mcp)
+PNPM_GLOBAL=(wrangler @paddle/paddle-mcp)
 OP_ENV_ITEM="stack env"
 OP_ENV_MARKER_BEGIN="# >>> stack: 1password-managed env (do not edit) >>>"
 OP_ENV_MARKER_END="# <<< stack: 1password-managed env <<<"
 
 MAS_APPS=(
-  "450527929:djay Pro"
   "1569813296:1Password for Safari"
   "1662217862:Wipr"
 )
