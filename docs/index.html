@@ -546,6 +546,10 @@
         </picture></span>
         <span class="tile-body"><span class="tile-name">oMLX</span><span class="tile-desc">Local model server</span></span>
       </a>
+      <a class="tile" href="https://opencode.ai" target="_blank" rel="noopener">
+        <span class="tile-icon"><img src="https://cdn.simpleicons.org/opencode/000000" alt="" loading="lazy"></span>
+        <span class="tile-body"><span class="tile-name">OpenCode</span><span class="tile-desc">Local CLI agent</span></span>
+      </a>
       <a class="tile" href="https://apps.apple.com/us/app/xcode/id497799835?mt=12" target="_blank" rel="noopener">
         <span class="tile-icon"><img src="https://cdn.simpleicons.org/xcode/147EFB" alt="" loading="lazy"></span>
         <span class="tile-body"><span class="tile-name">Xcode</span><span class="tile-desc">Manual App Store install</span></span>
@@ -601,6 +605,7 @@
       <span class="chip">go</span>
       <span class="chip">hf</span>
       <span class="chip">omlx</span>
+      <span class="chip">opencode</span>
       <span class="chip">rclone</span>
       <span class="chip">wrangler</span>
     </div>
@@ -618,8 +623,7 @@
       <span class="chip"><span class="arrow">→</span>SSH via 1Password agent (Touch ID), public key uploaded to GitHub</span>
       <span class="chip"><span class="arrow">→</span>Google Drive artifact remote via <code>rclone</code></span>
       <span class="chip"><span class="arrow">→</span>Codex CLI sign-in launched for you</span>
-      <span class="chip"><span class="arrow">→</span>Cursor configured with local oMLX access through Continue</span>
-      <span class="chip"><span class="arrow">→</span>Cursor tasks for starting, stopping, and checking oMLX</span>
+      <span class="chip"><span class="arrow">→</span>OpenCode CLI configured with local oMLX access</span>
       <span class="chip"><span class="arrow">→</span>Optional Qwopus3.6 4bit oMLX model download</span>
       <span class="chip"><span class="arrow">→</span>Secrets pulled from a 1Password Secure Note into <code>~/.zshrc.local</code></span>
     </div>
@@ -637,8 +641,8 @@
       <li><strong>GitHub auth</strong><em>Runs device-code login and sets <code>gh auth setup-git</code> as the credential helper.</em></li>
       <li><strong>1Password SSH agent</strong><em>Waits for the GUI integration and SSH agent to be enabled, wires <code>~/.ssh/config</code> to the agent, and uploads the public key to GitHub for SSH auth.</em></li>
       <li><strong>Repo origin to SSH</strong><em>Switches the cloned repo from HTTPS to <code>git@github.com</code> once SSH is verified.</em></li>
-      <li><strong>Stow</strong><em>Symlinks zsh, git, and helper scripts into <code>$HOME</code>, after touching the <code>.gitconfig.local</code> / <code>.zshrc.local</code> override stubs.</em></li>
-      <li><strong>AI agent config</strong><em>Creates or updates local Codex config with Paddle MCP servers and stows Cursor settings/tasks plus Continue's oMLX local model config.</em></li>
+      <li><strong>Stow</strong><em>Symlinks zsh, git, Cursor, OpenCode, and helper scripts into <code>$HOME</code>, after touching the <code>.gitconfig.local</code> / <code>.zshrc.local</code> override stubs.</em></li>
+      <li><strong>AI agent config</strong><em>Creates or updates local Codex config with Paddle MCP servers and stows Cursor settings plus OpenCode's oMLX local model config.</em></li>
       <li><strong>Secrets from 1Password</strong><em>Reads the <code>stack env</code> item and writes fields like <code>HF_TOKEN</code> as exports into <code>~/.zshrc.local</code>.</em></li>
       <li><strong>oMLX model</strong><em>Optionally downloads <code>Jackrong/Qwopus3.6-27B-v2-MLX-4bit</code> into <code>~/.omlx/models</code>.</em></li>
       <li><strong>Codex sign-in</strong><em>Launches Codex for interactive auth.</em></li>
@@ -655,7 +659,7 @@
         <li>Approve the <code>gh auth</code> browser flow</li>
         <li>Approve the Google Drive <code>rclone</code> browser flow</li>
         <li>Choose whether to download the Qwopus3.6 4bit oMLX model</li>
-        <li>Sign in to Cursor, then use Continue's local config when you want oMLX-backed chat/edit/apply flows</li>
+        <li>Run <code>opencode</code> in any terminal when you want oMLX-backed local agent flows</li>
         <li>Sign in to <code>codex</code> when it opens its browser</li>
         <li>Install 1Password for Safari, Wipr, and Xcode from the App Store when needed</li>
       </ul>

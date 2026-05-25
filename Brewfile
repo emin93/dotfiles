@@ -27,6 +27,7 @@ cask "cursor"
 
 # AI
 brew "jundot/omlx/omlx"
+brew "opencode"
 cask "codex"
 
 # Browser & security
