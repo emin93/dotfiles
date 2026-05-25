@@ -23,6 +23,7 @@ OP_ENV_MARKER_END="# <<< stack: 1password-managed env <<<"
 RCLONE_DRIVE_REMOTE="clindesk-drive"
 RCLONE_DRIVE_ROOT="ClinDesk/marketing-artifacts"
 OMLX_MODEL_REPO="Jackrong/Qwopus3.6-27B-v2-MLX-4bit"
+OMLX_MODEL_ID="Qwopus3.6-27B-v2-MLX-4bit"
 OMLX_MODEL_DIR="${HOME}/.omlx/models/${OMLX_MODEL_REPO}"
 OMLX_BASE_URL="http://localhost:8000/v1"
 
@@ -385,7 +386,7 @@ wire_api = "responses"
 
 [profiles.omlx]
 model_provider = "omlx"
-model = "$OMLX_MODEL_REPO"
+model = "$OMLX_MODEL_ID"
 
 [mcp_servers.paddle]
 command = "$paddle_sandbox"
@@ -400,7 +401,7 @@ EOF
 
   CODEX_CONFIG="$codex_config" \
   OMLX_BASE_URL="$OMLX_BASE_URL" \
-  OMLX_MODEL_REPO="$OMLX_MODEL_REPO" \
+  OMLX_MODEL_ID="$OMLX_MODEL_ID" \
   python3 - <<'PY'
 import os
 import re
@@ -435,7 +436,7 @@ content = upsert_section(content, "model_providers.omlx", {
 })
 content = upsert_section(content, "profiles.omlx", {
     "model_provider": "omlx",
-    "model": os.environ["OMLX_MODEL_REPO"],
+    "model": os.environ["OMLX_MODEL_ID"],
 })
 path.write_text(content)
 PY
