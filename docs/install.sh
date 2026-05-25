@@ -22,6 +22,9 @@ OP_ENV_MARKER_BEGIN="# >>> stack: 1password-managed env (do not edit) >>>"
 OP_ENV_MARKER_END="# <<< stack: 1password-managed env <<<"
 RCLONE_DRIVE_REMOTE="clindesk-drive"
 RCLONE_DRIVE_ROOT="ClinDesk/marketing-artifacts"
+OMLX_MODEL_REPO="Jackrong/Qwopus3.6-27B-v2-MLX-4bit"
+OMLX_MODEL_DIR="${HOME}/.omlx/models/${OMLX_MODEL_REPO}"
+OMLX_BASE_URL="http://localhost:8000/v1"
 
 APP_STORE_APPS=(
   "1Password for Safari"
@@ -339,32 +342,14 @@ step_stow() {
       warn "backed up $target -> $backup"
     fi
   done
-  mkdir -p "${HOME}/.config" "${HOME}/.local/bin" "${HOME}/.claude" "${HOME}/.codex"
+  mkdir -p "${HOME}/.config" "${HOME}/.local/bin" "${HOME}/.codex"
   stow --target="$HOME" --dir="$REPO_DIR" --restow "${STOW_PACKAGES[@]}"
   ok "stowed: ${STOW_PACKAGES[*]}"
 }
 
 step_ai_agent_configs() {
-  step "Claude and Codex yolo configs"
-  mkdir -p "${HOME}/.claude" "${HOME}/.codex"
-
-  if [[ -e "${HOME}/.claude/settings.json" || -L "${HOME}/.claude/settings.json" ]]; then
-    ok "~/.claude/settings.json already exists; leaving it alone."
-  else
-    install -m 600 /dev/stdin "${HOME}/.claude/settings.json" <<'EOF'
-{
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  },
-  "permissions": {
-    "defaultMode": "bypassPermissions"
-  },
-  "skipDangerousModePermissionPrompt": true
-}
-EOF
-    ok "created ~/.claude/settings.json."
-  fi
+  step "Codex agent config"
+  mkdir -p "${HOME}/.codex"
 
   local codex_config="${HOME}/.codex/config.toml"
   local paddle_sandbox="${HOME}/.local/bin/paddle-sandbox"
@@ -393,6 +378,15 @@ PY
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
+[model_providers.omlx]
+name = "oMLX"
+base_url = "$OMLX_BASE_URL"
+wire_api = "responses"
+
+[profiles.omlx]
+model_provider = "omlx"
+model = "$OMLX_MODEL_REPO"
+
 [mcp_servers.paddle]
 command = "$paddle_sandbox"
 env_vars = ["PADDLE_SANDBOX_API_KEY"]
@@ -403,6 +397,77 @@ env_vars = ["PADDLE_PROD_API_KEY"]
 EOF
     ok "created ~/.codex/config.toml."
   fi
+
+  CODEX_CONFIG="$codex_config" \
+  OMLX_BASE_URL="$OMLX_BASE_URL" \
+  OMLX_MODEL_REPO="$OMLX_MODEL_REPO" \
+  python3 - <<'PY'
+import os
+import re
+from pathlib import Path
+
+path = Path(os.environ["CODEX_CONFIG"])
+content = path.read_text()
+
+def upsert_section(content, section, values):
+    header = f"[{section}]"
+    pattern = re.compile(rf"(?ms)^({re.escape(header)}\n)(.*?)(?=^\[|\Z)")
+    match = pattern.search(content)
+    if not match:
+        block = "\n" + header + "\n" + "".join(f'{key} = "{value}"\n' for key, value in values.items())
+        if content and not content.endswith("\n"):
+            content += "\n"
+        return content + block
+
+    body = match.group(2)
+    for key, value in values.items():
+        line = f'{key} = "{value}"'
+        if re.search(rf"(?m)^{re.escape(key)}\s*=", body):
+            body = re.sub(rf"(?m)^{re.escape(key)}\s*=.*$", line, body)
+        else:
+            body += line + "\n"
+    return content[:match.start(2)] + body + content[match.end(2):]
+
+content = upsert_section(content, "model_providers.omlx", {
+    "name": "oMLX",
+    "base_url": os.environ["OMLX_BASE_URL"],
+    "wire_api": "responses",
+})
+content = upsert_section(content, "profiles.omlx", {
+    "model_provider": "omlx",
+    "model": os.environ["OMLX_MODEL_REPO"],
+})
+path.write_text(content)
+PY
+  ok "ensured oMLX Codex provider and 4bit profile."
+}
+
+step_omlx_model() {
+  step "oMLX model"
+  if ! command -v hf >/dev/null 2>&1; then
+    warn "hf CLI not on PATH; skipping $OMLX_MODEL_REPO download."
+    return
+  fi
+
+  if [[ -d "$OMLX_MODEL_DIR" && -n "$(find "$OMLX_MODEL_DIR" -maxdepth 1 -type f -print -quit 2>/dev/null)" ]]; then
+    ok "$OMLX_MODEL_REPO already exists under ~/.omlx/models."
+    return
+  fi
+
+  local reply
+  warn "$OMLX_MODEL_REPO is a large model download. It can take a while."
+  read -rp "    Type 'download' to download it into ~/.omlx/models now, or press Enter to skip: " reply
+  if [[ "$reply" != "download" ]]; then
+    warn "skipping oMLX model download; run 'hf download $OMLX_MODEL_REPO --local-dir \"$OMLX_MODEL_DIR\"' later."
+    return
+  fi
+
+  mkdir -p "$OMLX_MODEL_DIR"
+  if hf download "$OMLX_MODEL_REPO" --local-dir "$OMLX_MODEL_DIR"; then
+    ok "downloaded $OMLX_MODEL_REPO."
+  else
+    warn "couldn't download $OMLX_MODEL_REPO; check Hugging Face auth/network and re-run."
+  fi
 }
 
 step_local_overrides() {
@@ -412,25 +477,6 @@ step_local_overrides() {
     touch "$f"
   done
   ok "ensured ${#LOCAL_OVERRIDES[@]} override file(s)."
-}
-
-step_claude_signin() {
-  step "Claude sign-in"
-  local reply
-  if ! command -v claude >/dev/null 2>&1; then
-    warn "claude CLI not on PATH yet. Open a new shell after this finishes and run 'claude auth login'."
-    return
-  fi
-  if claude auth status >/dev/null 2>&1; then
-    ok "already signed in."
-    return
-  fi
-  read -rp "    Type 'login' to sign in to Claude now, or press Enter to skip: " reply
-  if [[ "$reply" != "login" ]]; then
-    warn "skipping Claude sign-in; run 'claude auth login' later."
-    return
-  fi
-  claude auth login || warn "claude auth login didn't complete; re-run when ready."
 }
 
 step_codex_signin() {
@@ -505,42 +551,6 @@ PY
   ok "wrote $(grep -c '^export ' <<<"$exports") secret(s) to ~/.zshrc.local"
 }
 
-step_claude_mcp_servers() {
-  step "Claude MCP servers"
-  local paddle_sandbox="${HOME}/.local/bin/paddle-sandbox"
-  local paddle_prod="${HOME}/.local/bin/paddle-prod"
-  export PATH="${HOME}/.local/bin:${PNPM_HOME:-$HOME/Library/pnpm}/bin:$PATH"
-
-  if ! command -v claude >/dev/null 2>&1; then
-    warn "claude CLI not on PATH; skipping Paddle MCP registration."
-    return
-  fi
-  if ! claude auth status >/dev/null 2>&1; then
-    warn "Claude isn't signed in; skipping Paddle MCP registration."
-    return
-  fi
-  if ! command -v paddle >/dev/null 2>&1; then
-    warn "Paddle MCP package not on PATH; skipping Claude MCP registration."
-    return
-  fi
-
-  if claude mcp list 2>/dev/null | grep -q '^paddle:'; then
-    ok "paddle already registered with Claude."
-  elif claude mcp add --scope user paddle -- "$paddle_sandbox"; then
-    ok "registered paddle with Claude."
-  else
-    warn "couldn't register paddle with Claude."
-  fi
-
-  if claude mcp list 2>/dev/null | grep -q '^paddle-prod:'; then
-    ok "paddle-prod already registered with Claude."
-  elif claude mcp add --scope user paddle-prod -- "$paddle_prod"; then
-    ok "registered paddle-prod with Claude."
-  else
-    warn "couldn't register paddle-prod with Claude."
-  fi
-}
-
 step_summary() {
   header "Done"
   ok "${STEP_NUM}/${STEP_TOTAL} steps completed."
@@ -570,9 +580,8 @@ STEPS=(
   step_stow
   step_ai_agent_configs
   step_secrets_from_1password
-  step_claude_signin
+  step_omlx_model
   step_codex_signin
-  step_claude_mcp_servers
 )
 STEP_TOTAL=${#STEPS[@]}
 
