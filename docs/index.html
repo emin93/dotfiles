@@ -612,6 +612,7 @@
       <span class="chip"><span class="arrow">→</span>Google Drive artifact remote via <code>rclone</code></span>
       <span class="chip"><span class="arrow">→</span>Codex CLI sign-in launched for you</span>
       <span class="chip"><span class="arrow">→</span>Zed configured with an oMLX local-model provider</span>
+      <span class="chip"><span class="arrow">→</span>Zed tasks for starting, stopping, and checking oMLX</span>
       <span class="chip"><span class="arrow">→</span>Optional Qwopus3.6 4bit oMLX model download</span>
       <span class="chip"><span class="arrow">→</span>Secrets pulled from a 1Password Secure Note into <code>~/.zshrc.local</code></span>
     </div>
@@ -631,7 +632,7 @@
       <li><strong>1Password SSH agent</strong><em>Waits for the GUI integration and SSH agent to be enabled, wires <code>~/.ssh/config</code> to the agent, and uploads the public key to GitHub for SSH auth.</em></li>
       <li><strong>Repo origin to SSH</strong><em>Switches the cloned repo from HTTPS to <code>git@github.com</code> once SSH is verified.</em></li>
       <li><strong>Stow</strong><em>Symlinks zsh, git, and helper scripts into <code>$HOME</code>, after touching the <code>.gitconfig.local</code> / <code>.zshrc.local</code> override stubs.</em></li>
-      <li><strong>AI agent config</strong><em>Creates or updates local Codex config with Paddle MCP servers and stows Zed settings for the oMLX local model.</em></li>
+      <li><strong>AI agent config</strong><em>Creates or updates local Codex config with Paddle MCP servers and stows Zed settings/tasks for the oMLX local model.</em></li>
       <li><strong>Secrets from 1Password</strong><em>Reads the <code>stack env</code> item and writes fields like <code>HF_TOKEN</code> as exports into <code>~/.zshrc.local</code>.</em></li>
       <li><strong>oMLX model</strong><em>Optionally downloads <code>Jackrong/Qwopus3.6-27B-v2-MLX-4bit</code> into <code>~/.omlx/models</code>.</em></li>
       <li><strong>Codex sign-in</strong><em>Launches Codex for interactive auth.</em></li>

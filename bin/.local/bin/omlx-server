@@ -1,0 +1,145 @@
+#!/usr/bin/env bash
+# Manage the local oMLX server used by Zed.
+set -euo pipefail
+
+export PATH="/opt/homebrew/bin:/usr/local/bin:${HOME}/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+MODEL_REPO="${OMLX_MODEL_REPO:-Jackrong/Qwopus3.6-27B-v2-MLX-4bit}"
+MODEL_ID="${OMLX_MODEL_ID:-Qwopus3.6-27B-v2-MLX-4bit}"
+MODEL_ROOT="${OMLX_MODEL_ROOT:-${HOME}/.omlx/models}"
+MODEL_PATH="${MODEL_ROOT}/${MODEL_REPO}"
+HOST="${OMLX_HOST:-127.0.0.1}"
+PORT="${OMLX_PORT:-8000}"
+BASE_URL="http://${HOST}:${PORT}/v1"
+LOG_DIR="${HOME}/Library/Logs/oMLX"
+SERVER_LOG="${LOG_DIR}/server.log"
+LAUNCH_AGENT_LABEL="ch.emin.omlx-server"
+LAUNCH_AGENT_PLIST="${HOME}/Library/LaunchAgents/${LAUNCH_AGENT_LABEL}.plist"
+
+usage() {
+  printf 'Usage: %s {start|stop|restart|status|logs}\n' "${0##*/}" >&2
+}
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    printf 'Missing command: %s\n' "$1" >&2
+    exit 127
+  fi
+}
+
+service_loaded() {
+  /bin/launchctl print "gui/${UID}/${LAUNCH_AGENT_LABEL}" >/dev/null 2>&1
+}
+
+server_has_model() {
+  /usr/bin/curl -fsS --max-time 2 "${BASE_URL}/models" 2>/dev/null | /usr/bin/grep -Fq "\"${MODEL_ID}\""
+}
+
+write_launch_agent() {
+  mkdir -p "$(dirname "$LAUNCH_AGENT_PLIST")" "$LOG_DIR"
+  local omlx_bin
+  omlx_bin="$(command -v omlx)"
+
+  cat >"$LAUNCH_AGENT_PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${LAUNCH_AGENT_LABEL}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${omlx_bin}</string>
+    <string>serve</string>
+    <string>--model-dir</string>
+    <string>${MODEL_ROOT}</string>
+    <string>--host</string>
+    <string>${HOST}</string>
+    <string>--port</string>
+    <string>${PORT}</string>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>${SERVER_LOG}</string>
+  <key>StandardErrorPath</key>
+  <string>${SERVER_LOG}</string>
+</dict>
+</plist>
+EOF
+}
+
+start_server() {
+  require_command omlx
+
+  if [[ ! -f "${MODEL_PATH}/config.json" ]]; then
+    printf 'Model not found at %s\n' "$MODEL_PATH" >&2
+    printf 'Download it with:\n  hf download %s --local-dir "%s"\n' "$MODEL_REPO" "$MODEL_PATH" >&2
+    exit 1
+  fi
+
+  if server_has_model; then
+    printf 'oMLX is already serving %s at %s\n' "$MODEL_ID" "$BASE_URL"
+    return
+  fi
+
+  write_launch_agent
+  service_loaded || /bin/launchctl bootstrap "gui/${UID}" "$LAUNCH_AGENT_PLIST" >/dev/null 2>&1 || true
+  /bin/launchctl kickstart -k "gui/${UID}/${LAUNCH_AGENT_LABEL}" >/dev/null 2>&1 || true
+
+  printf 'Starting oMLX for %s at %s\n' "$MODEL_ID" "$BASE_URL"
+  local deadline=$((SECONDS + 120))
+  until server_has_model; do
+    if ! service_loaded; then
+      printf 'oMLX did not start. Check %s\n' "$SERVER_LOG" >&2
+      exit 1
+    fi
+    if (( SECONDS >= deadline )); then
+      printf 'Timed out waiting for oMLX. Check %s\n' "$SERVER_LOG" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+
+  printf 'oMLX is ready: %s\n' "$MODEL_ID"
+}
+
+stop_server() {
+  if service_loaded; then
+    /bin/launchctl bootout "gui/${UID}" "$LAUNCH_AGENT_PLIST" >/dev/null 2>&1 || \
+      /bin/launchctl remove "$LAUNCH_AGENT_LABEL" >/dev/null 2>&1 || true
+  fi
+  rm -f "$LAUNCH_AGENT_PLIST"
+  printf 'oMLX stopped.\n'
+}
+
+status_server() {
+  if server_has_model; then
+    printf 'running: %s at %s\n' "$MODEL_ID" "$BASE_URL"
+    return
+  fi
+  if service_loaded; then
+    printf 'launch agent loaded, but %s is not ready yet. Log: %s\n' "$MODEL_ID" "$SERVER_LOG"
+    return
+  fi
+  printf 'stopped\n'
+}
+
+case "${1:-}" in
+  start) start_server ;;
+  stop) stop_server ;;
+  restart)
+    stop_server
+    start_server
+    ;;
+  status) status_server ;;
+  logs)
+    mkdir -p "$LOG_DIR"
+    touch "$SERVER_LOG"
+    tail -f "$SERVER_LOG"
+    ;;
+  *)
+    usage
+    exit 2
+    ;;
+esac

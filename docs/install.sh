@@ -41,6 +41,8 @@ STOW_TARGETS=(
   "${HOME}/.hushlogin"
   "${HOME}/.zshrc"
   "${HOME}/.config/zed/settings.json"
+  "${HOME}/.config/zed/tasks.json"
+  "${HOME}/.local/bin/omlx-server"
   "${HOME}/.local/bin/paddle-sandbox"
   "${HOME}/.local/bin/paddle-prod"
 )
