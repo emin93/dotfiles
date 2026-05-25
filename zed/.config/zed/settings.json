@@ -1,4 +1,21 @@
 {
+  "edit_predictions": {
+    "provider": "zed"
+  },
+  "agent_servers": {
+    "github-copilot-cli": {
+      "type": "registry"
+    },
+    "codex-acp": {
+      "type": "registry"
+    }
+  },
+  "agent": {
+    "default_model": {
+      "provider": "oMLX",
+      "model": "Qwopus3.6-27B-v2-MLX-4bit"
+    }
+  },
   "auto_install_extensions": {
     "macos-classic": true,
     "vscode-icons": true
@@ -37,8 +54,8 @@
           {
             "name": "Qwopus3.6-27B-v2-MLX-4bit",
             "display_name": "Qwopus3.6 27B MLX 4bit",
-            "max_tokens": 32768,
-            "max_output_tokens": 8192,
+            "max_tokens": 131072,
+            "max_output_tokens": 32768,
             "capabilities": {
               "tools": true,
               "images": false,
