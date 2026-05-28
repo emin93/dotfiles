@@ -1,6 +1,3 @@
-# Third-party taps
-tap "jundot/omlx", "https://github.com/jundot/omlx"
-
 # CLI tools
 brew "stow"
 brew "ripgrep"
@@ -25,10 +22,8 @@ cask "android-platform-tools"
 cask "android-studio"
 
 # AI
-brew "jundot/omlx/omlx"
-brew "opencode"
-cask "opencode-desktop"
 cask "codex"
+cask "claude-code@latest"
 
 # Browser & security
 cask "1password"

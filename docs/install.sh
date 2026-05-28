@@ -15,15 +15,13 @@ REPO_OWNER="emin93"
 REPO_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}.git"
 REPO_SSH_URL="git@github.com:${REPO_OWNER}/${REPO_NAME}.git"
 REPO_DIR="${HOME}/Documents/Projects/${REPO_NAME}"
-STOW_PACKAGES=(git zsh opencode bin)
+STOW_PACKAGES=(git zsh claude bin)
 PNPM_GLOBAL=(wrangler @paddle/paddle-mcp)
 OP_ENV_ITEM="stack env"
 OP_ENV_MARKER_BEGIN="# >>> stack: 1password-managed env (do not edit) >>>"
 OP_ENV_MARKER_END="# <<< stack: 1password-managed env <<<"
 RCLONE_DRIVE_REMOTE="clindesk-drive"
 RCLONE_DRIVE_ROOT="ClinDesk/marketing-artifacts"
-OMLX_MODEL_REPO="Jackrong/Qwopus3.6-27B-v2-MLX-4bit"
-OMLX_MODEL_DIR="${HOME}/.omlx/models/${OMLX_MODEL_REPO}"
 
 APP_STORE_APPS=(
   "1Password for Safari"
@@ -40,8 +38,7 @@ STOW_TARGETS=(
   "${HOME}/.gitconfig"
   "${HOME}/.hushlogin"
   "${HOME}/.zshrc"
-  "${HOME}/.config/opencode/opencode.json"
-  "${HOME}/.local/bin/omlx-server"
+  "${HOME}/.claude/settings.json"
   "${HOME}/.local/bin/paddle-sandbox"
   "${HOME}/.local/bin/paddle-prod"
 )
@@ -325,7 +322,7 @@ step_stow() {
       warn "backed up $target -> $backup"
     fi
   done
-  mkdir -p "${HOME}/.config" "${HOME}/.local/bin" "${HOME}/.codex"
+  mkdir -p "${HOME}/.config" "${HOME}/.claude" "${HOME}/.local/bin" "${HOME}/.codex"
   stow --target="$HOME" --dir="$REPO_DIR" --restow "${STOW_PACKAGES[@]}"
   ok "stowed: ${STOW_PACKAGES[*]}"
 }
@@ -374,31 +371,39 @@ EOF
   ok "ensured Codex CLI config and Paddle MCP servers."
 }
 
-step_omlx_model() {
-  step "oMLX model"
-  if ! command -v hf >/dev/null 2>&1; then
-    warn "hf CLI not on PATH; skipping $OMLX_MODEL_REPO download."
+step_claude_mcp_servers() {
+  step "Claude MCP servers"
+  local paddle_sandbox="${HOME}/.local/bin/paddle-sandbox"
+  local paddle_prod="${HOME}/.local/bin/paddle-prod"
+  export PATH="${HOME}/.local/bin:${PNPM_HOME:-$HOME/Library/pnpm}/bin:$PATH"
+
+  if ! command -v claude >/dev/null 2>&1; then
+    warn "claude CLI not on PATH; skipping Paddle MCP registration."
+    return
+  fi
+  if [[ ! -x "$paddle_sandbox" || ! -x "$paddle_prod" ]]; then
+    warn "Paddle wrapper scripts are missing; skipping Claude MCP registration."
+    return
+  fi
+  if ! command -v paddle >/dev/null 2>&1; then
+    warn "Paddle MCP package not on PATH; skipping Claude MCP registration."
     return
   fi
 
-  if [[ -d "$OMLX_MODEL_DIR" && -n "$(find "$OMLX_MODEL_DIR" -maxdepth 1 -type f -print -quit 2>/dev/null)" ]]; then
-    ok "$OMLX_MODEL_REPO already exists under ~/.omlx/models."
-    return
-  fi
-
-  local reply
-  warn "$OMLX_MODEL_REPO is a large model download. It can take a while."
-  read -rp "    Type 'download' to download it into ~/.omlx/models now, or press Enter to skip: " reply
-  if [[ "$reply" != "download" ]]; then
-    warn "skipping oMLX model download; run 'hf download $OMLX_MODEL_REPO --local-dir \"$OMLX_MODEL_DIR\"' later."
-    return
-  fi
-
-  mkdir -p "$OMLX_MODEL_DIR"
-  if hf download "$OMLX_MODEL_REPO" --local-dir "$OMLX_MODEL_DIR"; then
-    ok "downloaded $OMLX_MODEL_REPO."
+  if claude mcp list 2>/dev/null | grep -q '^paddle:'; then
+    ok "paddle already registered with Claude."
+  elif claude mcp add --scope user paddle -- "$paddle_sandbox"; then
+    ok "registered paddle with Claude."
   else
-    warn "couldn't download $OMLX_MODEL_REPO; check Hugging Face auth/network and re-run."
+    warn "couldn't register paddle with Claude."
+  fi
+
+  if claude mcp list 2>/dev/null | grep -q '^paddle-prod:'; then
+    ok "paddle-prod already registered with Claude."
+  elif claude mcp add --scope user paddle-prod -- "$paddle_prod"; then
+    ok "registered paddle-prod with Claude."
+  else
+    warn "couldn't register paddle-prod with Claude."
   fi
 }
 
@@ -409,6 +414,25 @@ step_local_overrides() {
     touch "$f"
   done
   ok "ensured ${#LOCAL_OVERRIDES[@]} override file(s)."
+}
+
+step_claude_signin() {
+  step "Claude sign-in"
+  local reply
+  if ! command -v claude >/dev/null 2>&1; then
+    warn "claude CLI not on PATH yet. Open a new shell after this finishes and run 'claude auth login'."
+    return
+  fi
+  if claude auth status >/dev/null 2>&1; then
+    ok "already signed in."
+    return
+  fi
+  read -rp "    Type 'login' to sign in to Claude now, or press Enter to skip: " reply
+  if [[ "$reply" != "login" ]]; then
+    warn "skipping Claude sign-in; run 'claude auth login' later."
+    return
+  fi
+  claude auth login || warn "claude auth login didn't complete; re-run when ready."
 }
 
 step_codex_signin() {
@@ -511,7 +535,8 @@ STEPS=(
   step_stow
   step_ai_agent_configs
   step_secrets_from_1password
-  step_omlx_model
+  step_claude_signin
+  step_claude_mcp_servers
   step_codex_signin
 )
 STEP_TOTAL=${#STEPS[@]}
